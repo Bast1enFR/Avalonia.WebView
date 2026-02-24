@@ -69,8 +69,6 @@
 		<PackageReference Include="Avalonia" />
 		<PackageReference Include="Microsoft.Extensions.FileProviders.Physical" />
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
-		<PackageReference Include="GtkSharp" />
-		<PackageReference Include="WebkitGtkSharp" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 	</ItemGroup>
 

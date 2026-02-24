@@ -17,7 +17,7 @@ public partial class LinuxWebViewCore : IPlatformWebView<LinuxWebViewCore>
         private set => Volatile.Write(ref _isdisposed, value);
     }
 
-    public WebKitWebView WebView
+    public nint WebView
     {
         get
         {
@@ -29,19 +29,20 @@ public partial class LinuxWebViewCore : IPlatformWebView<LinuxWebViewCore>
     {
         get
         {
-            return _webView.ZoomLevel;
+            return GtkApi.WebViewGetZoomLevel(_webView);
         }
         set
         {
-            _webView.ZoomLevel = value;
+            GtkApi.WebViewSetZoomLevel(_webView, value);
         }
     }
 
     delegate void void_nint_nint_nint(nint arg0, nint arg1, nint arg2);
-    delegate bool bool_nint_nint_policytype(nint arg0, nint arg1, PolicyDecisionType type);
+    delegate bool bool_nint_nint_policytype(nint arg0, nint arg1, WebKitPolicyDecisionType type);
+    delegate bool bool_nint_nint_nint(nint arg0, nint arg1, nint arg2);
 
-    readonly GWindow _hostWindow;
-    readonly WebKitWebView _webView;
+    readonly nint _hostWindow;
+    readonly nint _webView;
     readonly IntPtr _hostWindowX11Handle;
     readonly ILinuxApplication _application;
     readonly ILinuxDispatcher _dispatcher;
@@ -54,6 +55,7 @@ public partial class LinuxWebViewCore : IPlatformWebView<LinuxWebViewCore>
 
     readonly void_nint_nint_nint _userContentMessageReceived;
     readonly bool_nint_nint_policytype _decidePolicyArgsChanged;
+    readonly bool_nint_nint_nint _permissionRequestHandler;
 
     WebScheme? _webScheme;
     bool _isInitialized = false;
@@ -72,13 +74,14 @@ public partial class LinuxWebViewCore : IPlatformWebView<LinuxWebViewCore>
         _dispatcher = linuxApplication.Dispatcher;
         var gtkWrapper = linuxApplication.CreateWebView().Result;
 
-        _hostWindow = gtkWrapper.Item1;
-        _webView = gtkWrapper.Item2;
+        _hostWindow = gtkWrapper.window;
+        _webView = gtkWrapper.webView;
         NativeHandler = gtkWrapper.hostHandle;
         _hostWindowX11Handle = gtkWrapper.hostHandle;
 
         _userContentMessageReceived = WebView_WebMessageReceived;
         _decidePolicyArgsChanged = WebView_DecidePolicy;
+        _permissionRequestHandler = WebView_PermissionRequest;
         RegisterEvents();
     }
 

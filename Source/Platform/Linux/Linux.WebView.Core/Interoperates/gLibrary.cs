@@ -12,5 +12,6 @@ public enum gLibrary
     GdkPixbuf,
     Gtk,
     GtkSource,
-    Webkit
+    Webkit,
+    JavaScriptCore
 }

@@ -2,5 +2,5 @@
 
 public static class GtkWindowExtesnsions
 {
-    public static nint X11Handle(this GWidget widget) => GtkApi.GetWidgetXid(widget);
+    public static nint X11Handle(this nint widgetHandle) => GtkApi.GetWidgetXid(widgetHandle);
 }

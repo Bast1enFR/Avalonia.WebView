@@ -8,6 +8,11 @@ internal class LinuxDispatcher : ILinuxDispatcher
     }
 
     bool _isRunning = false;
+
+    // Store references to pending callbacks to prevent GC collection before GTK invokes them
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, GSourceFunc> _pendingCallbacks = new();
+    private static int _nextCallbackId;
+
     bool ILinuxDispatcher.Start()
     {
         _isRunning = true;
@@ -20,6 +25,26 @@ internal class LinuxDispatcher : ILinuxDispatcher
         return true;
     }
 
+    private static GSourceFunc CreateTrackedCallback(Action<IntPtr> body)
+    {
+        var id = System.Threading.Interlocked.Increment(ref _nextCallbackId);
+        GSourceFunc callback = null!;
+        callback = (data) =>
+        {
+            try
+            {
+                body(data);
+            }
+            finally
+            {
+                _pendingCallbacks.TryRemove(id, out _);
+            }
+            return false;
+        };
+        _pendingCallbacks.TryAdd(id, callback);
+        return callback;
+    }
+
     Task<bool> ILinuxDispatcher.InvokeAsync(Action action)
     {
         if (action is null)
@@ -29,14 +54,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        Task.Run(() =>
+        var callback = CreateTrackedCallback((_) =>
         {
-            GApplication.Invoke((s, e) =>
+            try
             {
-                action?.Invoke();
+                action.Invoke();
                 task.SetResult(true);
-            });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
         });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -49,14 +79,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        Task.Run(() =>
+        var callback = CreateTrackedCallback((_) =>
         {
-            GApplication.Invoke((s, e) =>
+            try
             {
-                action?.Invoke(s, e);
+                action.Invoke(null, EventArgs.Empty);
                 task.SetResult(true);
-            });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
         });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -69,14 +104,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        Task.Run(() =>
+        var callback = CreateTrackedCallback((_) =>
         {
-            GApplication.Invoke(sender, args,(s, e) =>
+            try
             {
-                action?.Invoke(s, e);
+                action.Invoke(sender, args);
                 task.SetResult(true);
-            });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
         });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -89,14 +129,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        Task.Run(() =>
+        var callback = CreateTrackedCallback((_) =>
         {
-            GApplication.Invoke((s, e) =>
+            try
             {
                 var ret = func.Invoke();
                 task.SetResult(ret);
-            });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
         });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -109,14 +154,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        Task.Run(() =>
+        var callback = CreateTrackedCallback((_) =>
         {
-            GApplication.Invoke((s, e) =>
+            try
             {
-                var ret = func.Invoke(s, e);
+                var ret = func.Invoke(null, EventArgs.Empty);
                 task.SetResult(ret);
-            });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
         });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -129,14 +179,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        Task.Run(() =>
+        var callback = CreateTrackedCallback((_) =>
         {
-            GApplication.Invoke(sender, args,(s, e) =>
+            try
             {
-                var ret = func.Invoke(s, e);
+                var ret = func.Invoke(sender, args);
                 task.SetResult(ret);
-            });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
         });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
 }

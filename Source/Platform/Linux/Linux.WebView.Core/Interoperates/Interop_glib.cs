@@ -2,6 +2,9 @@
 
 public delegate bool timeout_callback(IntPtr data);
 
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+public delegate bool GSourceFunc(IntPtr data);
+
 internal unsafe class Interop_glib
 {
     //const string _Glib = "glib";
@@ -14,4 +17,7 @@ internal unsafe class Interop_glib
 
     [DllImport(_Glib)]
     private static extern ulong g_timeout_add_full(int prio, uint interval, timeout_callback callback, nint data, nint destroy);
+
+    [DllImport(_Glib)]
+    public static extern uint g_idle_add(GSourceFunc function, nint data);
 }

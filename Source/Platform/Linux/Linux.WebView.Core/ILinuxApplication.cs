@@ -5,6 +5,6 @@ public interface ILinuxApplication : IDisposable
     bool IsRunning { get; }
     ILinuxDispatcher Dispatcher { get; }
     Task<bool> RunAsync(string? applicationName, string[]? args);
-    Task<(GWindow, WebKitWebView, IntPtr hostHandle)> CreateWebView();
+    Task<(nint window, nint webView, IntPtr hostHandle)> CreateWebView();
     Task StopAsync();
 }

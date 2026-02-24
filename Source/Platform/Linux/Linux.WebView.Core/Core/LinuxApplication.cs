@@ -19,10 +19,8 @@ internal class LinuxApplication : ILinuxApplication
 
     private readonly bool _isWslDevelop;
     readonly ILinuxDispatcher _dispatcher;
-    //Task? _appRunning;
     Thread? _appThread;
-    GDisplay? _defaultDisplay;
-    GApplication? _application;
+    nint _defaultDisplay;
 
     bool _isRunning = false;
     public bool IsRunning
@@ -48,25 +46,6 @@ internal class LinuxApplication : ILinuxApplication
             return Task.FromResult(true);
 
         var tcs = new TaskCompletionSource<bool>();
-        //_appRunning = Task.Factory.StartNew(obj =>
-        //{
-        //    Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "/proc/fake-display-to-prevent-wayland-initialization-by-gtk3");
-        //    if (!_isWslDevelop)
-        //        GtkApi.SetAllowedBackends("x11,wayland,quartz,*");
-        //        //GtkApi.SetAllowedBackends("x11");
-        //    GApplication.Init();   
-        //    _defaultDisplay = GDisplay.Default;
-//
-        //    _application = new("WebView.Application", GLib.ApplicationFlags.None);
-        //    _application.Register(GLib.Cancellable.Current);
-//
-        //    _dispatcher.Start();
-        //    IsRunning = true;
-//
-        //    tcs.SetResult(true);
-        //    GApplication.Run();
-        //}, TaskCreationOptions.LongRunning);
-//
 
         _appThread = new Thread(()=> Run(tcs))
         {
@@ -82,20 +61,17 @@ internal class LinuxApplication : ILinuxApplication
     {
         if (!_isWslDevelop)
                 GtkApi.SetAllowedBackends("x11");
-                //GtkApi.SetAllowedBackends("x11,wayland,quartz,*");
         Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "/proc/fake-display-to-prevent-wayland-initialization-by-gtk3");
 
         try
         {
-            GApplication.Init();   
-            _application = new("WebView.Application", GLib.ApplicationFlags.None);
-            _application.Register(GLib.Cancellable.Current);
+            Interop_gtk.gtk_init_check(0, IntPtr.Zero);
             _dispatcher.Start();
 
-            _defaultDisplay = GDisplay.Default;
+            _defaultDisplay = Interop_gdk.gdk_display_get_default();
             IsRunning = true;
             taskSource.SetResult(true);
-            GApplication.Run();
+            Interop_gtk.gtk_main();
         }
         catch
         {
@@ -108,11 +84,9 @@ internal class LinuxApplication : ILinuxApplication
         if (!IsRunning)
             return Task.CompletedTask;
 
-        _application = null;
         _dispatcher.Stop();
-        GApplication.Quit();
+        Interop_gtk.gtk_main_quit();
         _appThread?.Join();
-        //_appRunning?.Wait();
         return Task.CompletedTask;
     }
 
@@ -126,8 +100,7 @@ internal class LinuxApplication : ILinuxApplication
 
             await ((ILinuxApplication)this).StopAsync();
 
-            _defaultDisplay?.Dispose();
-            _defaultDisplay = null;
+            _defaultDisplay = IntPtr.Zero;
 
             IsDisposed = true;
         }
@@ -139,19 +112,21 @@ internal class LinuxApplication : ILinuxApplication
         GC.SuppressFinalize(this);
     }
 
-    Task<(GWindow, WebKitWebView, IntPtr hostHandle)> ILinuxApplication.CreateWebView()
+    Task<(nint window, nint webView, IntPtr hostHandle)> ILinuxApplication.CreateWebView()
     {
         if (!_isRunning) throw new InvalidOperationException(nameof(IsRunning));
         return _dispatcher.InvokeAsync(() =>
         {
-            GWindow window = new("WebView.Gtk.Window");
-            _application?.AddWindow(window);
-            window.KeepAbove = true;
-            //window.DefaultSize = new GSize(100,100); 
-            WebKitWebView webView = new(new Settings(){ EnableFullscreen = true}); 
-            window.Add(webView);
-            window.ShowAll();
-            return (window, webView, window.X11Handle());
+            nint window = Interop_gtk.gtk_window_new(GtkWindowType.GTK_WINDOW_TOPLEVEL);
+            Interop_gtk.gtk_window_set_title(window, "WebView.Gtk.Window");
+            Interop_gtk.gtk_window_set_keep_above(window, true);
+            nint webView = GtkApi.WebViewNew();
+            var settings = GtkApi.WebViewGetSettings(webView);
+            GtkApi.SettingsSetEnableFullscreen(settings, true);
+            Interop_gtk.gtk_container_add(window, webView);
+            Interop_gtk.gtk_widget_show_all(window);
+            GtkApi.WidgetRealize(window);
+            return (window, webView, GtkApi.GetWidgetXid(window));
         });
     }
 
