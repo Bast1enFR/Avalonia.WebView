@@ -4,7 +4,7 @@ using static Linux.WebView.Core.LinuxApplicationManager;
 namespace Linux.WebView.Core.Interoperates;
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-public delegate IntPtr gdk_set_allowed_backends_delegate(string backends);
+public delegate void gdk_set_allowed_backends_delegate(string backends);
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 public delegate nint gdk_x11_window_get_xid_delegate(nint gdkWindowHandle);
@@ -350,11 +350,7 @@ public static class GtkApi
 
         try
         {
-           var hWnd =  __gdk_set_allowed_backends.Invoke(backends);
-           if (hWnd == IntPtr.Zero)
-           {
-               
-           }
+           __gdk_set_allowed_backends.Invoke(backends);
         }
         catch (Exception)
         {

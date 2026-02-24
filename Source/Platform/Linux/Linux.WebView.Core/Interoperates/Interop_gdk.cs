@@ -28,7 +28,7 @@ internal class Interop_gdk
 
 
     [DllImport(_Gdk)]
-    public static extern nint gdk_set_allowed_backends(string backends);
+    public static extern void gdk_set_allowed_backends(string backends);
 
     [DllImport(_Gdk)]
     public static extern nint gdk_display_get_default();

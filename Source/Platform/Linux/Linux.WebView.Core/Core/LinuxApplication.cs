@@ -60,12 +60,16 @@ internal class LinuxApplication : ILinuxApplication
     void Run(TaskCompletionSource<bool> taskSource)
     {
         if (!_isWslDevelop)
-                GtkApi.SetAllowedBackends("x11");
+                Interop_gdk.gdk_set_allowed_backends("x11");
         Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "/proc/fake-display-to-prevent-wayland-initialization-by-gtk3");
 
         try
         {
-            Interop_gtk.gtk_init_check(0, IntPtr.Zero);
+            if (!Interop_gtk.gtk_init_check(0, IntPtr.Zero))
+            {
+                taskSource.SetResult(false);
+                return;
+            }
             _dispatcher.Start();
 
             _defaultDisplay = Interop_gdk.gdk_display_get_default();
