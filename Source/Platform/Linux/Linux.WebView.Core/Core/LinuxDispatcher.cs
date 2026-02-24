@@ -8,6 +8,11 @@ internal class LinuxDispatcher : ILinuxDispatcher
     }
 
     bool _isRunning = false;
+
+    // Store references to pending callbacks to prevent GC collection before GTK invokes them
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, GSourceFunc> _pendingCallbacks = new();
+    private static int _nextCallbackId;
+
     bool ILinuxDispatcher.Start()
     {
         _isRunning = true;
@@ -20,24 +25,24 @@ internal class LinuxDispatcher : ILinuxDispatcher
         return true;
     }
 
-    private static void InvokeOnGtkThread(Action action, TaskCompletionSource<bool> task)
+    private static GSourceFunc CreateTrackedCallback(Action<IntPtr> body)
     {
-        GSourceFunc callback = (_) =>
+        var id = System.Threading.Interlocked.Increment(ref _nextCallbackId);
+        GSourceFunc callback = null!;
+        callback = (data) =>
         {
             try
             {
-                action.Invoke();
-                task.SetResult(true);
+                body(data);
             }
-            catch (Exception ex)
+            finally
             {
-                task.SetException(ex);
+                _pendingCallbacks.TryRemove(id, out _);
             }
-            return false; // Return false to remove the idle source
+            return false;
         };
-        // prevent delegate from being collected
-        GC.KeepAlive(callback);
-        Interop_glib.g_idle_add(callback, IntPtr.Zero);
+        _pendingCallbacks.TryAdd(id, callback);
+        return callback;
     }
 
     Task<bool> ILinuxDispatcher.InvokeAsync(Action action)
@@ -49,7 +54,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        InvokeOnGtkThread(action, task);
+        var callback = CreateTrackedCallback((_) =>
+        {
+            try
+            {
+                action.Invoke();
+                task.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+        });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -62,7 +79,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        InvokeOnGtkThread(() => action.Invoke(null, EventArgs.Empty), task);
+        var callback = CreateTrackedCallback((_) =>
+        {
+            try
+            {
+                action.Invoke(null, EventArgs.Empty);
+                task.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+        });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -75,7 +104,19 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        InvokeOnGtkThread(() => action.Invoke(sender, args), task);
+        var callback = CreateTrackedCallback((_) =>
+        {
+            try
+            {
+                action.Invoke(sender, args);
+                task.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+        });
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -88,7 +129,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        GSourceFunc callback = (_) =>
+        var callback = CreateTrackedCallback((_) =>
         {
             try
             {
@@ -99,9 +140,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             {
                 task.SetException(ex);
             }
-            return false;
-        };
-        GC.KeepAlive(callback);
+        });
         Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
@@ -115,7 +154,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        GSourceFunc callback = (_) =>
+        var callback = CreateTrackedCallback((_) =>
         {
             try
             {
@@ -126,9 +165,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             {
                 task.SetException(ex);
             }
-            return false;
-        };
-        GC.KeepAlive(callback);
+        });
         Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
@@ -142,7 +179,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        GSourceFunc callback = (_) =>
+        var callback = CreateTrackedCallback((_) =>
         {
             try
             {
@@ -153,9 +190,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             {
                 task.SetException(ex);
             }
-            return false;
-        };
-        GC.KeepAlive(callback);
+        });
         Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
