@@ -26,32 +26,22 @@ unsafe partial class LinuxWebViewCore
 
     }
 
-    void RegisterWebViewEvents(WebKitWebView webView)
+    void RegisterWebViewEvents(nint webView)
     {
-        if (webView is null)
+        if (webView == IntPtr.Zero)
             return;
 
         var bRet = _dispatcher.InvokeAsync(() =>
         {
-            GtkApi.AddSignalConnect(webView.Handle, "decide-policy", LinuxApplicationManager.LoadFunction(_decidePolicyArgsChanged), IntPtr.Zero);
-            webView.DecidePolicy += WebView_DecidePolicy;
-            webView.PermissionRequest += WebView_PermissionRequest;
-            webView.UserMessageReceived += WebView_UserMessageReceived;
-            //webView.UserContentManager.AddSignalHandler("script-message-received::webview", WebView_WebMessageReceived);
+            GtkApi.AddSignalConnect(webView, "decide-policy", LinuxApplicationManager.LoadFunction(_decidePolicyArgsChanged), IntPtr.Zero);
+            GtkApi.AddSignalConnect(webView, "permission-request", LinuxApplicationManager.LoadFunction(_permissionRequestHandler), IntPtr.Zero);
         }).Result;
     }
 
-    void UnregisterWebViewEvents(WebKitWebView webView)
+    void UnregisterWebViewEvents(nint webView)
     {
-        if (webView is null)
+        if (webView == IntPtr.Zero)
             return;
-
-        var bRet = _dispatcher.InvokeAsync(() =>
-        {
-            webView.DecidePolicy -= WebView_DecidePolicy;
-            webView.PermissionRequest -= WebView_PermissionRequest;
-            webView.UserMessageReceived -= WebView_UserMessageReceived;
-        }).Result;
     }
 
 

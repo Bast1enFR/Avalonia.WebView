@@ -9,9 +9,9 @@ partial class LinuxWebViewCore
 
     object? IPlatformWebView.PlatformViewContext => this;
 
-    bool IWebViewControl.CanGoForward =>  _dispatcher.InvokeAsync(WebView.CanGoForward).Result;
+    bool IWebViewControl.CanGoForward =>  _dispatcher.InvokeAsync(() => GtkApi.WebViewCanGoForward(WebView)).Result;
 
-    bool IWebViewControl.CanGoBack => _dispatcher.InvokeAsync(WebView.CanGoBack).Result;
+    bool IWebViewControl.CanGoBack => _dispatcher.InvokeAsync(() => GtkApi.WebViewCanGoBack(WebView)).Result;
 
     async Task<bool> IPlatformWebView.Initialize()
     {
@@ -22,17 +22,18 @@ partial class LinuxWebViewCore
         {
             var bRet = _dispatcher.InvokeAsync(() =>
             {
-                WebView.Settings.EnableDeveloperExtras = _creationProperties.AreDevToolEnabled;
-                WebView.Settings.AllowFileAccessFromFileUrls = true;
-                WebView.Settings.AllowModalDialogs = true;
-                WebView.Settings.AllowTopNavigationToDataUrls = true;
-                WebView.Settings.AllowUniversalAccessFromFileUrls = true;
-                WebView.Settings.EnableBackForwardNavigationGestures = true;
-                WebView.Settings.EnableCaretBrowsing = false;
-                WebView.Settings.EnableMediaCapabilities = true;
-                WebView.Settings.EnableMediaStream = true;
-                WebView.Settings.JavascriptCanAccessClipboard = true;
-                WebView.Settings.JavascriptCanOpenWindowsAutomatically = true;
+                var settings = GtkApi.WebViewGetSettings(WebView);
+                GtkApi.SettingsSetEnableDeveloperExtras(settings, _creationProperties.AreDevToolEnabled);
+                GtkApi.SettingsSetAllowFileAccessFromFileUrls(settings, true);
+                GtkApi.SettingsSetAllowModalDialogs(settings, true);
+                GtkApi.SettingsSetAllowTopNavigationToDataUrls(settings, true);
+                GtkApi.SettingsSetAllowUniversalAccessFromFileUrls(settings, true);
+                GtkApi.SettingsSetEnableBackForwardNavigationGestures(settings, true);
+                GtkApi.SettingsSetEnableCaretBrowsing(settings, false);
+                GtkApi.SettingsSetEnableMediaCapabilities(settings, true);
+                GtkApi.SettingsSetEnableMediaStream(settings, true);
+                GtkApi.SettingsSetJavascriptCanAccessClipboard(settings, true);
+                GtkApi.SettingsSetJavascriptCanOpenWindowsAutomatically(settings, true);
             }).Result;
             
             RegisterWebViewEvents(WebView);
@@ -62,10 +63,7 @@ partial class LinuxWebViewCore
 
         var bRet = _dispatcher.InvokeAsync(() =>
         {
-            WebView.RunJavascript(script, default, (GLib.Object source_object, GLib.IAsyncResult res) =>
-            {
-        
-            });
+            GtkApi.WebViewRunJavascript(WebView, script);
         }) .Result;
 
         return Task.FromResult<string?>(string.Empty);
@@ -75,10 +73,10 @@ partial class LinuxWebViewCore
     {
         return _dispatcher.InvokeAsync(() =>
         {
-            if (!WebView.CanGoBack())
+            if (!GtkApi.WebViewCanGoBack(WebView))
                 return false;
 
-            WebView.GoBack();
+            GtkApi.WebViewGoBack(WebView);
             return true;
         }).Result;
     }
@@ -87,10 +85,10 @@ partial class LinuxWebViewCore
     {
         return _dispatcher.InvokeAsync(() =>
         {
-            if (!WebView.CanGoForward())
+            if (!GtkApi.WebViewCanGoForward(WebView))
                 return false;
 
-            WebView.GoForward();
+            GtkApi.WebViewGoForward(WebView);
             return true;
         }).Result;
 
@@ -101,7 +99,7 @@ partial class LinuxWebViewCore
         if (uri is null)
             return false;
 
-        return _dispatcher.InvokeAsync(() => WebView.LoadUri(uri.AbsoluteUri)).Result;
+        return _dispatcher.InvokeAsync(() => { GtkApi.WebViewLoadUri(WebView, uri.AbsoluteUri); return true; }).Result;
     }
 
     bool IWebViewControl.NavigateToString(string htmlContent)
@@ -109,7 +107,7 @@ partial class LinuxWebViewCore
         if (string.IsNullOrWhiteSpace(htmlContent))
             return false;
 
-       return  _dispatcher.InvokeAsync(() => WebView.LoadHtml(htmlContent)).Result;
+       return  _dispatcher.InvokeAsync(() => { GtkApi.WebViewLoadHtml(WebView, htmlContent); return true; }).Result;
     }
 
     bool IWebViewControl.OpenDevToolsWindow()
@@ -127,10 +125,7 @@ partial class LinuxWebViewCore
 
        return _dispatcher.InvokeAsync(() =>
         {
-            WebView.RunJavascript(script, default, (GLib.Object source_object, GLib.IAsyncResult res) =>
-            {
-
-            });
+            GtkApi.WebViewRunJavascript(WebView, script);
         }).Result;
  
     }
@@ -145,15 +140,12 @@ partial class LinuxWebViewCore
 
        return _dispatcher.InvokeAsync(() =>
         {
-            WebView.RunJavascript(script, default, (GLib.Object source_object, GLib.IAsyncResult res) =>
-            {
-
-            });
+            GtkApi.WebViewRunJavascript(WebView, script);
         }).Result; 
     }
 
-    bool IWebViewControl.Reload() =>  _dispatcher.InvokeAsync(WebView.Reload).Result;
-    bool IWebViewControl.Stop() => _dispatcher.InvokeAsync(WebView.StopLoading).Result;
+    bool IWebViewControl.Reload() =>  _dispatcher.InvokeAsync(() => { GtkApi.WebViewReload(WebView); return true; }).Result;
+    bool IWebViewControl.Stop() => _dispatcher.InvokeAsync(() => { GtkApi.WebViewStopLoading(WebView); return true; }).Result;
 
     protected virtual void Dispose(bool disposing)
     {
@@ -169,8 +161,8 @@ partial class LinuxWebViewCore
 
                     var ret = _dispatcher.InvokeAsync(() =>
                     {
-                        WebView.Dispose();
-                        _hostWindow.Dispose();
+                        Interop_gtk.gtk_widget_destroy(_webView);
+                        Interop_gtk.gtk_widget_destroy(_hostWindow);
                     }).Result;
 
                 }

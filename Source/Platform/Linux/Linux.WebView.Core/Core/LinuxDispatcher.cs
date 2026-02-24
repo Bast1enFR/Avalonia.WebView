@@ -20,6 +20,26 @@ internal class LinuxDispatcher : ILinuxDispatcher
         return true;
     }
 
+    private static void InvokeOnGtkThread(Action action, TaskCompletionSource<bool> task)
+    {
+        GSourceFunc callback = (_) =>
+        {
+            try
+            {
+                action.Invoke();
+                task.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+            return false; // Return false to remove the idle source
+        };
+        // prevent delegate from being collected
+        GC.KeepAlive(callback);
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
+    }
+
     Task<bool> ILinuxDispatcher.InvokeAsync(Action action)
     {
         if (action is null)
@@ -29,14 +49,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        Task.Run(() =>
-        {
-            GApplication.Invoke((s, e) =>
-            {
-                action?.Invoke();
-                task.SetResult(true);
-            });
-        });
+        InvokeOnGtkThread(action, task);
         return task.Task;
     }
     
@@ -49,14 +62,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        Task.Run(() =>
-        {
-            GApplication.Invoke((s, e) =>
-            {
-                action?.Invoke(s, e);
-                task.SetResult(true);
-            });
-        });
+        InvokeOnGtkThread(() => action.Invoke(null, EventArgs.Empty), task);
         return task.Task;
     }
     
@@ -69,14 +75,7 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult(false);
 
         var task = new TaskCompletionSource<bool>();
-        Task.Run(() =>
-        {
-            GApplication.Invoke(sender, args,(s, e) =>
-            {
-                action?.Invoke(s, e);
-                task.SetResult(true);
-            });
-        });
+        InvokeOnGtkThread(() => action.Invoke(sender, args), task);
         return task.Task;
     }
     
@@ -89,14 +88,21 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        Task.Run(() =>
+        GSourceFunc callback = (_) =>
         {
-            GApplication.Invoke((s, e) =>
+            try
             {
                 var ret = func.Invoke();
                 task.SetResult(ret);
-            });
-        });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+            return false;
+        };
+        GC.KeepAlive(callback);
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -109,14 +115,21 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        Task.Run(() =>
+        GSourceFunc callback = (_) =>
         {
-            GApplication.Invoke((s, e) =>
+            try
             {
-                var ret = func.Invoke(s, e);
+                var ret = func.Invoke(null, EventArgs.Empty);
                 task.SetResult(ret);
-            });
-        });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+            return false;
+        };
+        GC.KeepAlive(callback);
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
     
@@ -129,14 +142,21 @@ internal class LinuxDispatcher : ILinuxDispatcher
             return Task.FromResult<T>(default(T)!);
 
         var task = new TaskCompletionSource<T>();
-        Task.Run(() =>
+        GSourceFunc callback = (_) =>
         {
-            GApplication.Invoke(sender, args,(s, e) =>
+            try
             {
-                var ret = func.Invoke(s, e);
+                var ret = func.Invoke(sender, args);
                 task.SetResult(ret);
-            });
-        });
+            }
+            catch (Exception ex)
+            {
+                task.SetException(ex);
+            }
+            return false;
+        };
+        GC.KeepAlive(callback);
+        Interop_glib.g_idle_add(callback, IntPtr.Zero);
         return task.Task;
     }
 }

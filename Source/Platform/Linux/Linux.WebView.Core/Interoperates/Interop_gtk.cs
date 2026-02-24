@@ -12,7 +12,7 @@ public enum GConnectFlags : int
     G_CONNECT_SWAPPED
 }
 
-enum GtkFileChooserAction
+public enum GtkFileChooserAction
 {
     Open,
     Save,
@@ -20,7 +20,7 @@ enum GtkFileChooserAction
 }
 
 // ReSharper disable UnusedMember.Global
-enum GtkResponseType
+public enum GtkResponseType
 {
     Help = -11,
     Apply = -10,
@@ -36,7 +36,7 @@ enum GtkResponseType
 }
 
 
-internal unsafe class Interop_gtk
+public unsafe class Interop_gtk
 {
     //const string _Gtk = "gtk";
     const string _Gtk = "libgtk-3.so.0";
@@ -59,6 +59,12 @@ internal unsafe class Interop_gtk
     [DllImport(_Gtk)]
     public static extern void gtk_main_iteration();
 
+    [DllImport(_Gtk)]
+    public static extern void gtk_main();
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_main_quit();
+
 
     [DllImport(_Gtk)]
     public static extern void gtk_window_set_modal(nint window, bool modal);
@@ -66,6 +72,23 @@ internal unsafe class Interop_gtk
     [DllImport(_Gtk)]
     public static extern void gtk_window_present(nint gtkWindow);
 
+    [DllImport(_Gtk)]
+    public static extern nint gtk_window_new(GtkWindowType type);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_window_set_title(nint window, string title);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_window_set_keep_above(nint window, bool setting);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_window_set_default_size(nint window, int width, int height);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_widget_show_all(nint widget);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_widget_show(nint widget);
 
     public delegate bool signal_generic(nint gtkWidget, nint userData);
 
@@ -128,4 +151,7 @@ internal unsafe class Interop_gtk
 
     [DllImport(_Gtk)]
     public static extern nint gtk_application_new(string appId, int flags);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_application_add_window(nint application, nint window);
 }

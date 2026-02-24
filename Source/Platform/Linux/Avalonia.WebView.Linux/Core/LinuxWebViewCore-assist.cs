@@ -1,47 +1,35 @@
-﻿namespace Avalonia.WebView.Linux.Core;
+﻿using Linux.WebView.Core;
+
+namespace Avalonia.WebView.Linux.Core;
 
 partial class LinuxWebViewCore
 {
-    private void WebView_UserMessageReceived(object o, UserMessageReceivedArgs args)
+    private bool WebView_PermissionRequest(nint pWebView, nint pPermissionRequest, nint pArg)
     {
-
+        GtkApi.PermissionRequestAllow(pPermissionRequest);
+        return true;
     }
 
-
-    private void WebView_PermissionRequest(object o, PermissionRequestArgs args)
+    bool WebView_DecidePolicy(nint pWebView, nint pPolicyDecision, WebKitPolicyDecisionType type)
     {
-        args.Request.Allow();
-    }
-
-    private void WebView_DecidePolicy(object o, DecidePolicyArgs args)
-    {
-
-    }
-
-    bool WebView_DecidePolicy(nint pWebView, nint pPolicyDecision, PolicyDecisionType type)
-    {
-        if (type == PolicyDecisionType.Response)
+        if (type == WebKitPolicyDecisionType.Response)
             return true;
 
-        var policyDecision = new NavigationPolicyDecision(pPolicyDecision);
+        var pRequest = GtkApi.NavigationPolicyDecisionGetRequest(pPolicyDecision);
 
-#pragma warning disable CS0612 // Type or member is obsolete
-        var navigationRequest = policyDecision.Request;
-#pragma warning restore CS0612 // Type or member is obsolete
-
-        if (navigationRequest is null)
+        if (pRequest == IntPtr.Zero)
         {
-            policyDecision.Ignore();
+            GtkApi.IgnorePolicyDecision(pPolicyDecision);
             return false;
         }
 
-        var uriString = navigationRequest.Uri;
+        var uriString = GtkApi.UriRequestGetUri(pRequest);
         var uri = new Uri(uriString);
 
         WebViewUrlLoadingEventArg args = new () 
         { 
             Url = uri, 
-            RawArgs = policyDecision 
+            RawArgs = pPolicyDecision 
         };
 
         bool isSucceed = false;
@@ -51,13 +39,13 @@ partial class LinuxWebViewCore
             _callBack.PlatformWebViewNavigationStarting(this, args);
             if (args.Cancel)
             {
-                policyDecision.Ignore();
+                GtkApi.IgnorePolicyDecision(pPolicyDecision);
                 return false;
             }
 
             if (_webScheme?.BaseUri.IsBaseOf(uri) == true)
             {
-                policyDecision.Use();
+                GtkApi.UsePolicyDecision(pPolicyDecision);
                 isSucceed = true;
                 return true;
             }
@@ -65,12 +53,12 @@ partial class LinuxWebViewCore
             var newWindowEventArgs = new WebViewNewWindowEventArgs()
             {
                 Url = uri,
-                UrlLoadingStrategy = type == PolicyDecisionType.NewWindowAction ? UrlRequestStrategy.OpenInWebView : UrlRequestStrategy.OpenExternally
+                UrlLoadingStrategy = type == WebKitPolicyDecisionType.NewWindowAction ? UrlRequestStrategy.OpenInWebView : UrlRequestStrategy.OpenExternally
             };
 
             if (!_callBack.PlatformWebViewNewWindowRequest(this, newWindowEventArgs))
             {
-                policyDecision.Ignore();
+                GtkApi.IgnorePolicyDecision(pPolicyDecision);
                 return false;
             }
 
@@ -79,16 +67,16 @@ partial class LinuxWebViewCore
                 case UrlRequestStrategy.OpenExternally:
                 case UrlRequestStrategy.OpenInNewWindow:
                     OpenUriHelper.OpenInProcess(uri);
-                    policyDecision.Ignore();
+                    GtkApi.IgnorePolicyDecision(pPolicyDecision);
                     isSucceed = true;
                     break;
                 case UrlRequestStrategy.OpenInWebView:
-                    policyDecision.Use();
+                    GtkApi.UsePolicyDecision(pPolicyDecision);
                     isSucceed = true;
                     break;
                 case UrlRequestStrategy.CancelLoad:
                 default:
-                    policyDecision.Ignore();
+                    GtkApi.IgnorePolicyDecision(pPolicyDecision);
                     return false;
             }
         }
@@ -96,7 +84,7 @@ partial class LinuxWebViewCore
         {
             isSucceed = false;
         }
-        _callBack.PlatformWebViewNavigationCompleted(this, new WebViewUrlLoadedEventArg() { IsSuccess = isSucceed, RawArgs = policyDecision });
+        _callBack.PlatformWebViewNavigationCompleted(this, new WebViewUrlLoadedEventArg() { IsSuccess = isSucceed, RawArgs = pPolicyDecision });
         return true;
     }
 }

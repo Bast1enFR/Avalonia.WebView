@@ -17,12 +17,20 @@ public class LinuxApplicationManager
         _libraryDefinitions[gLibrary.Gtk] = ["libgtk-3-0.dll", "libgtk-3.so.0", "libgtk-3.0.dylib", "gtk-3.dll"];
         _libraryDefinitions[gLibrary.PangoCairo] = ["libpangocairo-1.0-0.dll", "libpangocairo-1.0.so.0", "libpangocairo-1.0.0.dylib", "pangocairo-1.dll"];
         _libraryDefinitions[gLibrary.GtkSource] = ["libgtksourceview-4-0.dll", "libgtksourceview-4.so.0", "libgtksourceview-4.0.dylib", "gtksourceview-4.dll"];
-        _libraryDefinitions[gLibrary.Webkit] = ["libwebkit2gtk-4.0.dll", "libwebkit2gtk-4.0.so.37", "libwebkit2gtk-4.0.dylib", "libwebkit2gtk-4.0.0.dll"];
+        _libraryDefinitions[gLibrary.Webkit] = ["libwebkit2gtk-4.1.so.0", "libwebkit2gtk-4.0.so.37", "libwebkit2gtk-4.1.dll", "libwebkit2gtk-4.0.dll", "libwebkit2gtk-4.1.dylib", "libwebkit2gtk-4.0.dylib"];
+        _libraryDefinitions[gLibrary.JavaScriptCore] = ["libjavascriptcoregtk-4.1.so.0", "libjavascriptcoregtk-4.0.so.18", "libjavascriptcoregtk-4.1.dll", "libjavascriptcoregtk-4.0.dll"];
     }
 
     private static readonly Dictionary<gLibrary, string[]> _libraryDefinitions;
     private static readonly Dictionary<gLibrary, nint> _libraries;
     private static readonly HashSet<gLibrary> _librariesNotFound;
+
+    private static bool _isWebkit41;
+
+    /// <summary>
+    /// Returns true if webkit2gtk-4.1 was loaded, false if 4.0 was loaded.
+    /// </summary>
+    public static bool IsWebkit41 => _isWebkit41;
 
     static nint Load(gLibrary library)
     {
@@ -44,14 +52,17 @@ public class LinuxApplicationManager
         if (_librariesNotFound.Contains(library))
             return false;
 
-        ret = LibraryLoader.LoadLibrary(_libraryDefinitions[library][1]);
-        if (ret == IntPtr.Zero)
+        // Try each library name in order (4.1 first, then 4.0 fallback)
+        for (int i = 0; i < _libraryDefinitions[library].Length; i++)
         {
-            for (int i = 0; i < _libraryDefinitions[library].Length; i++)
+            ret = LibraryLoader.LoadLibrary(_libraryDefinitions[library][i]);
+            if (ret != IntPtr.Zero)
             {
-                ret = LibraryLoader.LoadLibrary(_libraryDefinitions[library][i]);
-                if (ret != IntPtr.Zero)
-                    break;
+                // Track which webkit version was loaded
+                if (library == gLibrary.Webkit)
+                    _isWebkit41 = _libraryDefinitions[library][i].Contains("4.1");
+
+                break;
             }
         }
 
