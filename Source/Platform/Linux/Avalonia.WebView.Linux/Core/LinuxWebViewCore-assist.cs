@@ -13,7 +13,7 @@ partial class LinuxWebViewCore
     bool WebView_DecidePolicy(nint pWebView, nint pPolicyDecision, WebKitPolicyDecisionType type)
     {
         if (type == WebKitPolicyDecisionType.Response)
-            return true;
+            return false;
 
         var pRequest = GtkApi.NavigationPolicyDecisionGetRequest(pPolicyDecision);
 
