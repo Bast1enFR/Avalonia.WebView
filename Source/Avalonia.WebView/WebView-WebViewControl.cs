@@ -91,4 +91,31 @@ partial class WebView
 
         return _platformWebView.OpenDevToolsWindow();
     }
+    public IPlatformCookieManager? CookieManager
+    {
+        get
+        {
+            if (_platformWebView is null || !_platformWebView.IsInitialized)
+                return null;
+            return _platformWebView.CookieManager;
+        }
+    }
+    public void ClearCache(bool reload = true)
+    {
+        if (_platformWebView is null || !_platformWebView.IsInitialized)
+            return;
+        _platformWebView.ClearCache(reload);
+    }
+    public void SetBasicAuthenticationCredentials(string username, string password)
+    {
+        if (_platformWebView is null || !_platformWebView.IsInitialized)
+            return;
+        _platformWebView.SetBasicAuthenticationCredentials(username, password);
+    }
+    public Task<MemoryStream> CaptureAsync()
+    {
+        if (_platformWebView is null || !_platformWebView.IsInitialized)
+            return Task.FromResult(new MemoryStream());
+        return _platformWebView.CaptureAsync();
+    }
 }

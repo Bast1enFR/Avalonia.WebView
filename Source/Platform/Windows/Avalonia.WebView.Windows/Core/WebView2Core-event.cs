@@ -43,6 +43,7 @@ partial class WebView2Core
         corewebview2.WebMessageReceived += CoreWebView2_WebMessageReceived;
         corewebview2.WebResourceRequested += CoreWebView2_WebResourceRequested;
         corewebview2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
+        corewebview2.BasicAuthenticationRequested += CoreWebView2_BasicAuthenticationRequested;
     }
 
     void UnregisterWebViewEvents(CoreWebView2Controller coreWebView2Controller, bool browserCrashed = false)

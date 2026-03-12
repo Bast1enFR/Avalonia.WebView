@@ -13,6 +13,9 @@ public delegate nint gdk_x11_window_get_xid_delegate(nint gdkWindowHandle);
 public delegate void gtk_widget_realize_delegate(nint widgetHandle);
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+public delegate bool gdk_pixbuf_save_to_buffer_delegate(nint pixbuf, out nint buffer, out nuint bufferSize, string type, nint optionKeys, nint optionValues);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 public delegate ulong g_signal_connect_data_delegate(nint instance, string detailed_signal, nint c_handler, nint data, nint destroy_data, GConnectFlags connect_flags);
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -94,6 +97,18 @@ public delegate double webkit_web_view_get_zoom_level_delegate(nint webView);
 public delegate void webkit_web_view_set_zoom_level_delegate(nint webView, double zoomLevel);
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+public delegate void webkit_web_view_get_snapshot_delegate(nint webView, uint region, uint options, nint cancellable, nint callback, nint userData);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+public delegate nint webkit_web_view_get_snapshot_finish_delegate(nint webView, nint result, out nint error);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+public delegate nint webkit_web_context_get_website_data_manager_delegate(nint context);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+public delegate void webkit_website_data_manager_clear_delegate(nint manager, WebKitWebsiteDataTypes types, long timespan, nint cancellable, nint callback, nint userData);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 public delegate void webkit_settings_set_enable_developer_extras_delegate(nint settings, bool enabled);
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -164,10 +179,15 @@ public delegate void uri_scheme_request_callback_delegate(nint request, nint use
 
 public static class GtkApi
 {
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void GAsyncReadyCallback(nint source, nint result, nint userData);
+
     static GtkApi()
     {
         __gdk_set_allowed_backends = LoadDelegate<gdk_set_allowed_backends_delegate>(gLibrary.Gdk, gdk_set_allowed_backends)!;
         __gdk_x11_window_get_xid = LoadDelegate<gdk_x11_window_get_xid_delegate>(gLibrary.Gdk, gdk_x11_window_get_xid)!;
+        __gdk_pixbuf_save_to_buffer = LoadDelegate<gdk_pixbuf_save_to_buffer_delegate>(gLibrary.GdkPixbuf, gdk_pixbuf_save_to_buffer)!;
+
 
         __gtk_widget_realize_delegate = LoadDelegate<gtk_widget_realize_delegate>(gLibrary.Gtk, gtk_widget_realize)!;
         __g_signal_connect_data = LoadDelegate<g_signal_connect_data_delegate>(gLibrary.Gtk, g_signal_connect_data)!;
@@ -207,9 +227,13 @@ public static class GtkApi
         __webkit_web_view_run_javascript = LoadDelegate<webkit_web_view_run_javascript_delegate>(gLibrary.Webkit, webkit_web_view_run_javascript)!;
         __webkit_web_view_get_zoom_level = LoadDelegate<webkit_web_view_get_zoom_level_delegate>(gLibrary.Webkit, webkit_web_view_get_zoom_level)!;
         __webkit_web_view_set_zoom_level = LoadDelegate<webkit_web_view_set_zoom_level_delegate>(gLibrary.Webkit, webkit_web_view_set_zoom_level)!;
+        __webkit_web_view_get_snapshot = LoadDelegate<webkit_web_view_get_snapshot_delegate>(gLibrary.Webkit, webkit_web_view_get_snapshot)!;
+        __webkit_web_view_get_snapshot_finish = LoadDelegate<webkit_web_view_get_snapshot_finish_delegate>(gLibrary.Webkit, webkit_web_view_get_snapshot_finish)!;
+        __webkit_web_context_get_website_data_manager = LoadDelegate<webkit_web_context_get_website_data_manager_delegate>(gLibrary.Webkit, webkit_web_context_get_website_data_manager)!;
+        __webkit_website_data_manager_clear = LoadDelegate<webkit_website_data_manager_clear_delegate>(gLibrary.Webkit, webkit_website_data_manager_clear)!;
 
-        // Settings
-        __webkit_settings_set_enable_developer_extras = LoadDelegate<webkit_settings_set_enable_developer_extras_delegate>(gLibrary.Webkit, webkit_settings_set_enable_developer_extras)!;
+    // Settings
+    __webkit_settings_set_enable_developer_extras = LoadDelegate<webkit_settings_set_enable_developer_extras_delegate>(gLibrary.Webkit, webkit_settings_set_enable_developer_extras)!;
         __webkit_settings_set_allow_file_access_from_file_urls = LoadDelegate<webkit_settings_set_allow_file_access_from_file_urls_delegate>(gLibrary.Webkit, webkit_settings_set_allow_file_access_from_file_urls)!;
         __webkit_settings_set_allow_modal_dialogs = LoadDelegate<webkit_settings_set_allow_modal_dialogs_delegate>(gLibrary.Webkit, webkit_settings_set_allow_modal_dialogs)!;
         __webkit_settings_set_allow_top_navigation_to_data_urls = LoadDelegate<webkit_settings_set_allow_top_navigation_to_data_urls_delegate>(gLibrary.Webkit, webkit_settings_set_allow_top_navigation_to_data_urls);
@@ -238,6 +262,7 @@ public static class GtkApi
     }
 
     private static string gdk_set_allowed_backends => nameof(gdk_set_allowed_backends);
+    private static string gdk_pixbuf_save_to_buffer => nameof(gdk_pixbuf_save_to_buffer);
     private static string gtk_widget_realize => nameof(gtk_widget_realize);
     private static string gdk_x11_window_get_xid => nameof(gdk_x11_window_get_xid);
     private static string g_signal_connect_data => nameof(g_signal_connect_data);
@@ -267,6 +292,10 @@ public static class GtkApi
     private static string webkit_web_view_run_javascript => nameof(webkit_web_view_run_javascript);
     private static string webkit_web_view_get_zoom_level => nameof(webkit_web_view_get_zoom_level);
     private static string webkit_web_view_set_zoom_level => nameof(webkit_web_view_set_zoom_level);
+    private static string webkit_web_view_get_snapshot => nameof(webkit_web_view_get_snapshot);
+    private static string webkit_web_view_get_snapshot_finish => nameof(webkit_web_view_get_snapshot_finish);
+    private static string webkit_web_context_get_website_data_manager => nameof(webkit_web_context_get_website_data_manager);
+    private static string webkit_website_data_manager_clear => nameof(webkit_website_data_manager_clear);    
     private static string webkit_settings_set_enable_developer_extras => nameof(webkit_settings_set_enable_developer_extras);
     private static string webkit_settings_set_allow_file_access_from_file_urls => nameof(webkit_settings_set_allow_file_access_from_file_urls);
     private static string webkit_settings_set_allow_modal_dialogs => nameof(webkit_settings_set_allow_modal_dialogs);
@@ -292,6 +321,7 @@ public static class GtkApi
 
     private static readonly gdk_set_allowed_backends_delegate __gdk_set_allowed_backends;
     private static readonly gdk_x11_window_get_xid_delegate __gdk_x11_window_get_xid;
+    private static readonly gdk_pixbuf_save_to_buffer_delegate __gdk_pixbuf_save_to_buffer;
     private static readonly gtk_widget_realize_delegate __gtk_widget_realize_delegate;
     private static readonly g_signal_connect_data_delegate __g_signal_connect_data;
     private static readonly g_memory_input_stream_new_from_data_delegate __g_memory_input_stream_new_from_data;
@@ -320,6 +350,10 @@ public static class GtkApi
     private static readonly webkit_web_view_run_javascript_delegate __webkit_web_view_run_javascript;
     private static readonly webkit_web_view_get_zoom_level_delegate __webkit_web_view_get_zoom_level;
     private static readonly webkit_web_view_set_zoom_level_delegate __webkit_web_view_set_zoom_level;
+    private static readonly webkit_web_view_get_snapshot_delegate __webkit_web_view_get_snapshot;
+    private static readonly webkit_web_view_get_snapshot_finish_delegate __webkit_web_view_get_snapshot_finish;
+    private static readonly webkit_web_context_get_website_data_manager_delegate __webkit_web_context_get_website_data_manager;
+    private static readonly webkit_website_data_manager_clear_delegate __webkit_website_data_manager_clear;
     private static readonly webkit_settings_set_enable_developer_extras_delegate __webkit_settings_set_enable_developer_extras;
     private static readonly webkit_settings_set_allow_file_access_from_file_urls_delegate __webkit_settings_set_allow_file_access_from_file_urls;
     private static readonly webkit_settings_set_allow_modal_dialogs_delegate __webkit_settings_set_allow_modal_dialogs;
@@ -370,6 +404,8 @@ public static class GtkApi
 
         return __gdk_x11_window_get_xid.Invoke(gdkWindow);
     }
+
+    public static bool GetPixBuf(nint pixbuf, out nint buffer, out nuint bufferSize, string type, nint optionKeys, nint optionValues) => __gdk_pixbuf_save_to_buffer.Invoke(pixbuf, out buffer, out bufferSize, type, optionKeys, optionValues);
 
     public static void WidgetRealize(nint widgetHandle)
     {
@@ -456,7 +492,10 @@ public static class GtkApi
     public static void WebViewRunJavascript(nint webView, string script) => __webkit_web_view_run_javascript.Invoke(webView, script, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
     public static double WebViewGetZoomLevel(nint webView) => __webkit_web_view_get_zoom_level.Invoke(webView);
     public static void WebViewSetZoomLevel(nint webView, double zoomLevel) => __webkit_web_view_set_zoom_level.Invoke(webView, zoomLevel);
-
+    public static void WebViewGetSnapshot(nint webView, uint region, uint options, nint cancellable, nint callback, nint userData) => __webkit_web_view_get_snapshot.Invoke(webView, region, options, cancellable, callback, userData);    
+    public static nint WebViewGetSnapshotFinish(nint webView, nint result, out nint error) => __webkit_web_view_get_snapshot_finish.Invoke(webView, result, out error);
+    public static nint WebViewGetWebsiteDataManager(nint webView) => __webkit_web_context_get_website_data_manager.Invoke(webView);
+    public static void WebViewWebsiteDataManagerClear(nint manager, WebKitWebsiteDataTypes types, long timespan, nint cancellable, nint callback, nint userData) => __webkit_website_data_manager_clear.Invoke(manager, types, timespan, cancellable, callback, userData);
     // Settings functions
     public static void SettingsSetEnableDeveloperExtras(nint settings, bool enabled) => __webkit_settings_set_enable_developer_extras.Invoke(settings, enabled);
     public static void SettingsSetAllowFileAccessFromFileUrls(nint settings, bool allowed) => __webkit_settings_set_allow_file_access_from_file_urls.Invoke(settings, allowed);

@@ -6,4 +6,7 @@ public interface IPlatformWebView : IWebViewControl, IDisposable, IAsyncDisposab
     object? PlatformViewContext { get; }
     IntPtr NativeHandler { get;} 
     Task<bool> Initialize();
+    IPlatformCookieManager CookieManager { get; }
+    void SetBasicAuthenticationCredentials(string username, string password);
+    void ClearCache(bool reload = true);
 }

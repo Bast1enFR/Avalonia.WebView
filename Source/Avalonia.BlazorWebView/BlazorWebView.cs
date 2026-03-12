@@ -143,4 +143,17 @@ public partial class BlazorWebView : Control, IVirtualWebView<BlazorWebView>, IW
         _avaloniaWebViewManager = null;
         GC.SuppressFinalize(this);
     }
+    public IPlatformCookieManager CookieManager => throw new NotImplementedException();
+    public void ClearCache(bool reload = true)
+    {
+        throw new NotImplementedException();
+    }
+    public void SetBasicAuthenticationCredentials(string username, string password)
+    {
+        throw new NotImplementedException();
+    }
+    public async Task<MemoryStream> CaptureAsync()
+    {
+        throw new NotImplementedException();
+    }
 }

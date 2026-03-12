@@ -72,7 +72,9 @@ partial class WebView2Core
 
             if (_provider is not null)
                 await PrepareBlazorWebViewStarting(_provider, coreWebView2).ConfigureAwait(true);
-  
+
+            _cookieManager = new WindowsCookieManager(coreWebView2.CookieManager);
+
             IsInitialized = true;
 
             _callBack.PlatformWebViewCreated(this, new WebViewCreatedEventArgs { IsSucceed = true });
@@ -245,4 +247,20 @@ partial class WebView2Core
         ((IDisposable)this)?.Dispose();
         return new ValueTask();
     }
+    public async Task<MemoryStream> CaptureAsync()
+    {
+        // À adapter selon ton package : récupérer le CoreWebView2
+        var core = CoreWebView2;
+
+        var stream = new MemoryStream();
+
+        if (core is null)
+            return stream;
+
+        await core.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, stream);
+
+        stream.Position = 0;
+        return stream;
+    }
+
 }

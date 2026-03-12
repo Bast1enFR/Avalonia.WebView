@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Web.WebView2.Core.Raw;
+using System.Net;
 
 namespace Avalonia.WebView.Windows.Core;
 
@@ -82,6 +83,8 @@ public partial class WebView2Core : IPlatformWebView<WebView2Core>
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
 
+    private readonly NetworkCredential _basicAuthCred = new();
+
     public WebView2Core(IServiceProvider services, ViewHandler handler, IVirtualWebViewControlCallBack callback, IVirtualBlazorWebViewProvider? provider, WebViewCreationProperties webViewCreationProperties)
     {
         _loggerFactory = (_services = services).GetRequiredService<ILoggerFactory>();
@@ -106,5 +109,24 @@ public partial class WebView2Core : IPlatformWebView<WebView2Core>
     ~WebView2Core()
     {
         Dispose(disposing: false);
+    }
+    private IPlatformCookieManager? _cookieManager;
+    public IPlatformCookieManager CookieManager => _cookieManager!;
+    public void SetBasicAuthenticationCredentials(string username, string password)
+    {
+        _basicAuthCred.UserName = username;
+        _basicAuthCred.Password = password;
+    }
+    public void ClearCache(bool reload = true)
+    {
+        if (CoreWebView2 != null)
+        {
+            CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.AllProfile);
+            
+            if (reload)
+            {
+                CoreWebView2.Reload();
+            }
+        }
     }
 }

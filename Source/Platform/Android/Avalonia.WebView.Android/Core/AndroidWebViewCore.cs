@@ -1,4 +1,6 @@
-﻿namespace Avalonia.WebView.Android.Core;
+﻿using System.Net;
+
+namespace Avalonia.WebView.Android.Core;
 
 public partial class AndroidWebViewCore : IPlatformWebView<AndroidWebViewCore>
 {
@@ -53,6 +55,30 @@ public partial class AndroidWebViewCore : IPlatformWebView<AndroidWebViewCore>
         private set => Volatile.Write(ref _isdisposed, value);
     }
 
+    private double _zoomFactor = 1;
+    public double ZoomFactor
+    {
+        get
+        {
+            if (_webView == null)
+            {
+                return _zoomFactor;
+            }
+
+#pragma warning disable CS0618 // Le type ou le membre est obsolète
+            return _webView.Scale;
+#pragma warning restore CS0618 // Le type ou le membre est obsolète
+        }
+        set
+        {
+            _zoomFactor = value;
+            if (_webView != null)
+            {
+                _webView.SetInitialScale((int)(value * 100));
+            }
+        }
+    }
+
     WebViewClient? _webViewClient;
     WebChromeClient? _webChromeClient;
 
@@ -66,6 +92,27 @@ public partial class AndroidWebViewCore : IPlatformWebView<AndroidWebViewCore>
 
     public bool CanGoBack => throw new NotImplementedException();
 
-    public double ZoomFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    private IPlatformCookieManager? _cookieManager;
+    public IPlatformCookieManager CookieManager => _cookieManager!;
+    private readonly NetworkCredential _basicAuthCred = new();
+    public NetworkCredential BasicAuthenticationCredential => _basicAuthCred;    
+    public void SetBasicAuthenticationCredentials(string username, string password)
+    {
+        _basicAuthCred.UserName =  username;
+        _basicAuthCred.Password = password;
+    }
+    public void ClearCache(bool reload = true)
+    {
+        _webView.ClearCache(true);
+        _webView.ClearHistory();
+
+        var db = WebViewDatabase.GetInstance(_webView.Context);
+        db?.ClearHttpAuthUsernamePassword();
+
+        if (reload)
+        {
+            _webView.Reload();
+        }
+    }
 }
 

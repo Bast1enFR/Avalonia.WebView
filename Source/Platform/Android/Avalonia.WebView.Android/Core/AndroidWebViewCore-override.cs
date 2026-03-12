@@ -1,4 +1,7 @@
-﻿namespace Avalonia.WebView.Android.Core;
+﻿using Android.Graphics;
+using Canvas = Android.Graphics.Canvas;
+
+namespace Avalonia.WebView.Android.Core;
 
 partial class AndroidWebViewCore
 {
@@ -11,13 +14,30 @@ partial class AndroidWebViewCore
     object? IPlatformWebView.PlatformViewContext => this;
 
     Task<string?> IWebViewControl.ExecuteScriptAsync(string javaScript)
-    {
-        _webView.EvaluateJavascript(javaScript, new JavaScriptValueCallback(result =>
+    {        
+        var webView = WebView;
+        if (webView is null)
+            return Task.FromResult<string?>(null);
+
+        if (string.IsNullOrEmpty(javaScript))
+            return Task.FromResult<string?>(null);
+
+        var tcs = new TaskCompletionSource<string?>();
+
+        try
         {
+            webView.EvaluateJavascript(javaScript, new JavaScriptValueCallback(result =>
+            {
+                // Android renvoie souvent des chaînes JSON (ex: "\"hello\"")
+                tcs.TrySetResult(result?.ToString());
+            }));
+        }
+        catch (Exception ex)
+        {
+            tcs.TrySetException(ex);
+        }
 
-
-        }));
-        throw new NotImplementedException();
+        return tcs.Task;
     }
 
     bool IWebViewControl.GoBack()
@@ -57,16 +77,35 @@ partial class AndroidWebViewCore
         webView.Settings.JavaScriptEnabled = true;
         webView.Settings.DomStorageEnabled = true;
         webView.Settings.SetSupportZoom(true);
+        webView.Settings.MixedContentMode = MixedContentHandling.AlwaysAllow;
+        webView.Settings.AllowFileAccess = true;
+        webView.Settings.AllowUniversalAccessFromFileURLs = true;
+        webView.Settings.AllowFileAccessFromFileURLs = true;
         //webview.ZoomBy(1.2f);
 
         var bRet = await PrepareBlazorWebViewStarting(webView, _provider);
         if (!bRet)
         {
-            _webViewClient = new WebViewClient();
-            _webChromeClient = new WebChromeClient();
+            _webViewClient = new AndroidWebViewClientCore(this);
+            _webChromeClient = new AndroidWebChromeClientCore(this);
             webView.SetWebViewClient(_webViewClient);
             webView.SetWebChromeClient(_webChromeClient);
+
+            var bridge = new JsBridge();
+            bridge.MessageReceived += (_, msg) =>
+            {
+                Console.WriteLine("Message JS reçu : " + msg);
+                // déclenches équivalent de WebMessageReceived
+                ((AndroidWebViewClientCore)_webViewClient).OnWebMessageReceived(msg);
+            };
+            webView.AddJavascriptInterface(bridge, "nativeBridge");
+
+            RegisterWebViewEvents(_webViewClient);
+            RegisterWebChromeClient(_webChromeClient);
         }
+
+        _cookieManager = new AndroidCookieManager();
+
         IsInitialized = true;
         _callBack.PlatformWebViewCreated(this, new WebViewCreatedEventArgs { IsSucceed = true });
 
@@ -101,6 +140,7 @@ partial class AndroidWebViewCore
 
     bool IWebViewControl.OpenDevToolsWindow()
     {
+        // Voir si possible d'ouvrir les devtools chrome sur pc de debug ??
         throw new NotImplementedException();
     }
 
@@ -207,6 +247,26 @@ partial class AndroidWebViewCore
     {
         ((IDisposable)this)?.Dispose();
         return new ValueTask();
+    }
+    public Task<MemoryStream> CaptureAsync()
+    {
+        var native = WebView; // à adapter selon ton wrapper
+        var width = native.Width;
+        var height = native.Height;
+
+        if (width <= 0 || height <= 0)
+            throw new InvalidOperationException("WebView not laid out yet.");
+                
+        var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
+
+        var canvas = new Canvas(bitmap);
+        native.Draw(canvas);
+
+        var stream = new MemoryStream();
+        bitmap.Compress(Bitmap.CompressFormat.Png!, 100, stream);
+        stream.Position = 0;
+
+        return Task.FromResult(stream);
     }
 
 }

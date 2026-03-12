@@ -1,6 +1,9 @@
-﻿using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Web.WebView2.Core;
+using System.Diagnostics;
 using WebViewCore.Enums;
 using WebViewCore.Helpers;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace Avalonia.WebView.Windows.Core;
 
@@ -77,6 +80,7 @@ partial class WebView2Core
 
         var headerString = GetHeaderString(response.Headers);
         e.Response = CoreWebView2Environment.CreateWebResourceResponse(response.Content, response.StatusCode, response.StatusMessage, headerString);
+        
         return Task.CompletedTask;
     }
 
@@ -204,5 +208,21 @@ partial class WebView2Core
 
     private void Profile_Deleted(object? sender, object e)
     {
+    }
+
+    private void CoreWebView2_BasicAuthenticationRequested(object? sender, CoreWebView2BasicAuthenticationRequestedEventArgs e)
+    {
+        
+        _logger.LogInformation($"[WEBVIEW2 AUTH REQUEST] Host: {e.Uri}, Realm: N/C");
+        if (!string.IsNullOrEmpty(_basicAuthCred.UserName) && (!string.IsNullOrEmpty(_basicAuthCred.Password)))
+        {
+            _logger.LogInformation($"[WEBVIEW2 AUTH REQUEST] With BasicAuth for {_basicAuthCred.UserName}");
+            e.Response.UserName = _basicAuthCred.UserName;
+            e.Response.Password = _basicAuthCred.Password;
+            return;
+        }
+        _logger.LogInformation("[WEBVIEW2 AUTH REQUEST] Canceled");
+        // Si tu ne veux pas répondre
+        e.Cancel = true;
     }
 }

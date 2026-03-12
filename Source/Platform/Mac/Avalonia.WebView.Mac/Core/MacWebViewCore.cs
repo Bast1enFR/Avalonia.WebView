@@ -59,4 +59,17 @@ public partial class MacWebViewCore : IPlatformWebView<MacWebViewCore>
             throw new NotSupportedException("WebKit does not support zoom level");
         }
     }
+    public IPlatformCookieManager CookieManager => throw new NotImplementedException();
+    public void ClearCache(bool reload = true)
+    {
+        throw new NotImplementedException();
+    }
+    public void SetBasicAuthenticationCredentials(string username, string password)
+    {
+        throw new NotImplementedException();
+    }
+    public async Task<MemoryStream> CaptureAsync()
+    {
+        throw new NotImplementedException();
+    }
 }

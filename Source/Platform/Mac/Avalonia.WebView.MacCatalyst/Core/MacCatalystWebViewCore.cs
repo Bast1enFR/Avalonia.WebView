@@ -94,4 +94,17 @@ public partial class MacCatalystWebViewCore : IPlatformWebView<MacCatalystWebVie
     {
         Dispose(disposing: false);
     }
+    public IPlatformCookieManager CookieManager => throw new NotImplementedException();
+    public void ClearCache(bool reload = true)
+    {
+        throw new NotImplementedException();
+    }
+    public void SetBasicAuthenticationCredentials(string username, string password)
+    {
+        throw new NotImplementedException();
+    }
+    public async Task<MemoryStream> CaptureAsync()
+    {
+        throw new NotImplementedException();
+    }
 }

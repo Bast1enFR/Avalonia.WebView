@@ -20,4 +20,6 @@ public interface IWebViewControl
     bool PostWebMessageAsString(string webMessageAsString, Uri? baseUri);
 
     bool OpenDevToolsWindow();
+
+    Task<MemoryStream> CaptureAsync();
 }

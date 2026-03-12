@@ -40,6 +40,8 @@ partial class LinuxWebViewCore
 
             await PrepareBlazorWebViewStarting(_provider, WebView);
 
+            _cookieManager = new LinuxCookieManager();
+
             IsInitialized = true;
             _callBack.PlatformWebViewCreated(this, new WebViewCreatedEventArgs { IsSucceed = true });
 
