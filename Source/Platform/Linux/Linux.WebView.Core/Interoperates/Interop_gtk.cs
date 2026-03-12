@@ -87,6 +87,15 @@ public unsafe class Interop_gtk
     public static extern void gtk_window_set_default_size(nint window, int width, int height);
 
     [DllImport(_Gtk)]
+    public static extern void gtk_window_resize(nint window, int width, int height);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_window_move(nint window, int x, int y);
+
+    [DllImport(_Gtk)]
+    public static extern void gtk_window_set_decorated(nint window, bool setting);
+
+    [DllImport(_Gtk)]
     public static extern void gtk_widget_show_all(nint widget);
 
     [DllImport(_Gtk)]
