@@ -53,7 +53,7 @@ partial class LinuxWebViewCore
             var newWindowEventArgs = new WebViewNewWindowEventArgs()
             {
                 Url = uri,
-                UrlLoadingStrategy = type == WebKitPolicyDecisionType.NewWindowAction ? UrlRequestStrategy.OpenInWebView : UrlRequestStrategy.OpenExternally
+                UrlLoadingStrategy = type == WebKitPolicyDecisionType.NewWindowAction ? UrlRequestStrategy.OpenExternally : UrlRequestStrategy.OpenInWebView
             };
 
             if (!_callBack.PlatformWebViewNewWindowRequest(this, newWindowEventArgs))
