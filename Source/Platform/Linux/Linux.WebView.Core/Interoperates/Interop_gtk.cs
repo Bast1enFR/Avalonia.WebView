@@ -6,10 +6,12 @@ public enum GtkWindowType : int
     GTK_WINDOW_WINDOW_POPUP
 }
 
+[Flags]
 public enum GConnectFlags : int
 {
-    G_CONNECT_AFTER,
-    G_CONNECT_SWAPPED
+    G_CONNECT_DEFAULT = 0,
+    G_CONNECT_AFTER = 1 << 0,
+    G_CONNECT_SWAPPED = 1 << 1
 }
 
 public enum GtkFileChooserAction

@@ -417,7 +417,7 @@ public static class GtkApi
 
     public static ulong AddSignalConnect(nint instance, string detailed_signal, nint c_handler, nint data)
     {
-        return __g_signal_connect_data.Invoke(instance, detailed_signal, c_handler, data, IntPtr.Zero, GConnectFlags.G_CONNECT_AFTER);
+        return __g_signal_connect_data.Invoke(instance, detailed_signal, c_handler, data, IntPtr.Zero, GConnectFlags.G_CONNECT_DEFAULT);
     }
 
     public static nint MarshalToGLibInputStream(byte[] data, uint length, nint destroy) => __g_memory_input_stream_new_from_data.Invoke(data, length, destroy);

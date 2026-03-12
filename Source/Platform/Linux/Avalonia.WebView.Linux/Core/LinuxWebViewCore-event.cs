@@ -8,25 +8,7 @@ unsafe partial class LinuxWebViewCore
     {
         _handler.SizeChanged += HostControl_SizeChanged;
         _handler.PlatformHandlerChanged += Handler_PlatformHandlerChanged;
-
-        // AJOUTEZ CES LIGNES
-        Console.WriteLine($"[WebView] RegisterEvents called - WebView handle: {_webView}");
-
-        // Ajouter surveillance du chargement
-        var loadChangedPtr = Marshal.GetFunctionPointerForDelegate<LoadChangedCallback>(OnLoadChanged);
-        Interop_gtk.g_signal_connect(_webView, "load-changed", loadChangedPtr, IntPtr.Zero);
-
-        Console.WriteLine("[WebView] Events registered");
     }
-
-    // Ajoutez ces méthodes
-    private void OnLoadChanged(nint webView, int loadEvent, nint userData)
-    {
-        Console.WriteLine($"[WebView] Load event: {loadEvent}");
-    }
-
-    // Ajoutez ce delegate
-    delegate void LoadChangedCallback(nint webView, int loadEvent, nint userData);
 
     void UnregisterEvents()
     {
