@@ -20,7 +20,7 @@ partial class LinuxWebViewCore
         if (pRequest == IntPtr.Zero)
         {
             GtkApi.IgnorePolicyDecision(pPolicyDecision);
-            return false;
+            return true;
         }
 
         var uriString = GtkApi.UriRequestGetUri(pRequest);
@@ -40,7 +40,7 @@ partial class LinuxWebViewCore
             if (args.Cancel)
             {
                 GtkApi.IgnorePolicyDecision(pPolicyDecision);
-                return false;
+                return true;
             }
 
             if (_webScheme?.BaseUri.IsBaseOf(uri) == true)
@@ -50,38 +50,47 @@ partial class LinuxWebViewCore
                 return true;
             }
 
-            var newWindowEventArgs = new WebViewNewWindowEventArgs()
+            if (type == WebKitPolicyDecisionType.NavigationAction)
             {
-                Url = uri,
-                UrlLoadingStrategy = type == WebKitPolicyDecisionType.NewWindowAction ? UrlRequestStrategy.OpenExternally : UrlRequestStrategy.OpenInWebView
-            };
-
-            if (!_callBack.PlatformWebViewNewWindowRequest(this, newWindowEventArgs))
-            {
-                GtkApi.IgnorePolicyDecision(pPolicyDecision);
-                return false;
+                GtkApi.UsePolicyDecision(pPolicyDecision);
+                isSucceed = true;
             }
-
-            switch (newWindowEventArgs.UrlLoadingStrategy)
+            else
             {
-                case UrlRequestStrategy.OpenExternally:
-                case UrlRequestStrategy.OpenInNewWindow:
-                    OpenUriHelper.OpenInProcess(uri);
+                var newWindowEventArgs = new WebViewNewWindowEventArgs()
+                {
+                    Url = uri,
+                    UrlLoadingStrategy = UrlRequestStrategy.OpenExternally
+                };
+
+                if (!_callBack.PlatformWebViewNewWindowRequest(this, newWindowEventArgs))
+                {
                     GtkApi.IgnorePolicyDecision(pPolicyDecision);
-                    isSucceed = true;
-                    break;
-                case UrlRequestStrategy.OpenInWebView:
-                    GtkApi.UsePolicyDecision(pPolicyDecision);
-                    isSucceed = true;
-                    break;
-                case UrlRequestStrategy.CancelLoad:
-                default:
-                    GtkApi.IgnorePolicyDecision(pPolicyDecision);
-                    return false;
+                    return true;
+                }
+
+                switch (newWindowEventArgs.UrlLoadingStrategy)
+                {
+                    case UrlRequestStrategy.OpenExternally:
+                    case UrlRequestStrategy.OpenInNewWindow:
+                        OpenUriHelper.OpenInProcess(uri);
+                        GtkApi.IgnorePolicyDecision(pPolicyDecision);
+                        isSucceed = true;
+                        break;
+                    case UrlRequestStrategy.OpenInWebView:
+                        GtkApi.UsePolicyDecision(pPolicyDecision);
+                        isSucceed = true;
+                        break;
+                    case UrlRequestStrategy.CancelLoad:
+                    default:
+                        GtkApi.IgnorePolicyDecision(pPolicyDecision);
+                        break;
+                }
             }
         }
         catch (Exception)
         {
+            GtkApi.IgnorePolicyDecision(pPolicyDecision);
             isSucceed = false;
         }
         _callBack.PlatformWebViewNavigationCompleted(this, new WebViewUrlLoadedEventArg() { IsSuccess = isSucceed, RawArgs = pPolicyDecision });
