@@ -123,7 +123,7 @@ internal class LinuxApplication : ILinuxApplication
         {
             nint window = Interop_gtk.gtk_window_new(GtkWindowType.GTK_WINDOW_TOPLEVEL);
             Interop_gtk.gtk_window_set_title(window, "WebView.Gtk.Window");
-            Interop_gtk.gtk_window_set_keep_above(window, true);
+            Interop_gtk.gtk_window_set_decorated(window, false);
             nint webView = GtkApi.WebViewNew();
             var settings = GtkApi.WebViewGetSettings(webView);
             GtkApi.SettingsSetEnableFullscreen(settings, true);
